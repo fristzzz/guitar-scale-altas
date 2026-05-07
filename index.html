@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guitar Scale Atlas</title>
+    <link rel="stylesheet" href="./styles.css?v=ui-polish-1" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="ambient ambient-left"></div>
+      <div class="ambient ambient-right"></div>
+
+      <main class="app-panel">
+        <section class="intro-grid">
+          <header class="hero">
+            <div class="hero-copy">
+              <p class="eyebrow">Guitar Scale Atlas</p>
+              <h1>把音阶、和弦与指型关系放到同一块指板上。</h1>
+              <p class="hero-text">
+                选择主音、调式、和弦和练习窗口，立刻看到整块 24 品指板上的映射关系。这个页面不是教程，而是一个偏练习台的可视化工具，让你同时观察全板分布、当前指型重点和根音结构。
+              </p>
+            </div>
+
+            <div class="hero-highlights" aria-label="功能特性">
+              <span class="hero-chip">24 Frets</span>
+              <span class="hero-chip">3NPS / CAGED</span>
+              <span class="hero-chip">Scale &amp; Chord</span>
+              <span class="hero-chip">Theme Switcher</span>
+            </div>
+          </header>
+
+          <aside class="hero-rail">
+            <div class="hero-card">
+              <p class="card-label">当前练习</p>
+              <p class="card-value" id="selectionSummary">C Ionian · Position 1</p>
+              <p class="card-meta" id="windowSummary">24 Frets · Position Window 8-13</p>
+            </div>
+
+            <section class="status-panel" aria-label="当前音阶信息">
+              <div class="section-heading section-heading-compact">
+                <div>
+                  <p class="section-kicker">System Readout</p>
+                  <h2>练习上下文</h2>
+                </div>
+              </div>
+
+              <div class="status-strip">
+                <div class="status-chip">
+                  <span class="chip-label">模式公式</span>
+                  <span class="chip-value" id="formulaSummary"></span>
+                </div>
+                <div class="status-chip">
+                  <span class="chip-label">调弦</span>
+                  <span class="chip-value">E A D G B E</span>
+                </div>
+                <div class="status-chip">
+                  <span class="chip-label">系统</span>
+                  <span class="chip-value" id="systemSummary">3 Notes Per String</span>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </section>
+
+        <section class="control-suite">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Workspace</p>
+              <h2>练习控制台</h2>
+            </div>
+            <p class="section-note">
+              先选视图，再决定主音与调式或和弦，再用标签、主题和根音强调切换不同练习观察角度。
+            </p>
+          </div>
+
+          <section class="control-panel" aria-label="音阶控制面板">
+          <fieldset class="toggle-group" id="viewModeGroup">
+            <legend class="control-label">视图</legend>
+            <div class="pill-row" id="viewMode">
+              <button type="button" class="pill is-active" data-value="scale">Scale</button>
+              <button type="button" class="pill" data-value="chord">Chord</button>
+            </div>
+          </fieldset>
+
+          <label class="control-group" id="rootNoteGroup">
+            <span class="control-label">主音</span>
+            <select id="rootNote"></select>
+          </label>
+
+          <label class="control-group" id="modeGroup">
+            <span class="control-label">调式</span>
+            <select id="mode"></select>
+          </label>
+
+          <label class="control-group" id="positionGroup">
+            <span class="control-label">指型</span>
+            <select id="position"></select>
+          </label>
+
+          <label class="control-group is-hidden" id="chordTypeGroup">
+            <span class="control-label">和弦</span>
+            <select id="chordType"></select>
+          </label>
+
+          <fieldset class="toggle-group is-hidden control-span-2" id="chordShapeGroup">
+            <legend class="control-label">CAGED Shape</legend>
+            <div class="pill-row" id="chordShape">
+              <button type="button" class="pill" data-value="C">C</button>
+              <button type="button" class="pill" data-value="A">A</button>
+              <button type="button" class="pill" data-value="G">G</button>
+              <button type="button" class="pill is-active" data-value="E">E</button>
+              <button type="button" class="pill" data-value="D">D</button>
+            </div>
+            <p class="control-hint is-hidden" id="cagedHint">当前仅支持 maj/min 的 CAGED 高亮。</p>
+          </fieldset>
+
+          <label class="control-group" id="themeGroup">
+            <span class="control-label">主题</span>
+            <select id="theme"></select>
+          </label>
+
+          <fieldset class="toggle-group" id="labelModeGroup">
+            <legend class="control-label">标签显示</legend>
+            <div class="pill-row" id="labelMode">
+              <button type="button" class="pill is-active" data-value="note">音名</button>
+              <button type="button" class="pill" data-value="degree">级数</button>
+            </div>
+          </fieldset>
+
+          <label class="switch-group" for="emphasizeRoot">
+            <span class="control-label">根音强调</span>
+            <span class="switch-copy">单独高亮主音位置</span>
+            <input id="emphasizeRoot" type="checkbox" checked />
+          </label>
+        </section>
+        </section>
+
+        <section class="fretboard-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Practice Surface</p>
+              <h2>Fretboard</h2>
+            </div>
+            <p class="panel-note" id="panelNote">
+              整块 24 品上的调内音都会显示，当前 3NPS 把位窗口会使用更强的高亮强调，根音会在开启时使用琥珀色突出。
+            </p>
+          </div>
+
+          <div class="fretboard-wrap">
+            <div class="fretboard" id="fretboard" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <section class="legend-panel" aria-label="使用说明">
+          <article class="legend-card legend-card-featured">
+            <h3>练习建议</h3>
+            <p id="legendPracticeText">
+              先固定同一个主音，依次切换七个调式与 Position 1-7，观察根音和级数在横向与纵向上的位移关系。
+            </p>
+          </article>
+          <article class="legend-card">
+            <h3>标签切换</h3>
+            <p id="legendLabelText">
+              使用“音名”模式训练听觉和命名，使用“级数”模式训练调式功能感与即兴映射。
+            </p>
+          </article>
+          <article class="legend-card">
+            <h3>窗口提示</h3>
+            <p id="legendWindowText">
+              指板中较亮的木纹区域代表当前把位窗口。整块 24 品仍会显示全部调内音，方便你同时观察单个指型与全指板分布。
+            </p>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js?v=ui-polish-1"></script>
+  </body>
+</html>
