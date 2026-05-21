@@ -637,6 +637,7 @@ const elements = {
   emphasizeRoot: document.querySelector("#emphasizeRoot"),
   fretboard: document.querySelector("#fretboard"),
   selectionSummary: document.querySelector("#selectionSummary"),
+  scaleNotesSummary: document.querySelector("#scaleNotesSummary"),
   windowSummary: document.querySelector("#windowSummary"),
   formulaSummary: document.querySelector("#formulaSummary"),
   systemSummary: document.querySelector("#systemSummary"),
@@ -931,6 +932,12 @@ function getModeFormula(modeName) {
   return MODES[modeName].map((interval) => DEGREE_LABELS[interval]).join(" · ");
 }
 
+function getModeNoteNames(rootNote, modeName) {
+  const rootIndex = NOTE_INDEX[rootNote];
+
+  return MODES[modeName].map((interval) => NOTES[(rootIndex + interval) % NOTES.length]);
+}
+
 function getChordFormula(chordType) {
   return CHORDS[chordType].map((interval) => CHORD_DEGREE_LABELS[interval]).join(" · ");
 }
@@ -1055,6 +1062,7 @@ function getRenderContext(currentState) {
       legendWindowText: cagedEnabled
         ? "当前会保留整板和弦音，同时只对一个标准 CAGED shape 主区域做更强高亮，避免把和弦图挤成一整片。"
         : "和弦视图不会使用 3NPS Position 过滤，整块 24 品都会显示当前和弦音；非 maj/min 时 CAGED shape 高亮不可用。",
+      scaleNotesSummary: "",
     };
   }
 
@@ -1069,6 +1077,7 @@ function getRenderContext(currentState) {
     legendPracticeText: "先固定同一个主音，依次切换七个调式与 Position 1-7，观察根音和级数在横向与纵向上的位移关系。",
     legendLabelText: "使用“音名”模式训练听觉和命名，使用“级数”模式训练调式功能感与即兴映射。",
     legendWindowText: "指板中较亮的木纹区域代表当前把位窗口。整块 24 品仍会显示全部调内音，方便你同时观察单个指型与全指板分布。",
+    scaleNotesSummary: getModeNoteNames(currentState.rootNote, currentState.mode).join(", "),
   };
 }
 
@@ -1085,6 +1094,7 @@ function renderFretboard(currentState) {
     legendPracticeText,
     legendLabelText,
     legendWindowText,
+    scaleNotesSummary,
   } = getRenderContext(currentState);
   const highlightedMap = new Map(
     notes.map((note) => [`${note.stringIndex}-${note.fret}`, note]),
@@ -1179,6 +1189,8 @@ function renderFretboard(currentState) {
   }
 
   elements.selectionSummary.textContent = summary;
+  elements.scaleNotesSummary.textContent = scaleNotesSummary;
+  elements.scaleNotesSummary.classList.toggle("is-hidden", currentState.viewMode !== "scale");
   elements.windowSummary.textContent = windowSummary;
   elements.formulaSummary.textContent = formulaSummary;
   elements.systemSummary.textContent = systemSummary;
@@ -1289,6 +1301,14 @@ function runSelfCheck() {
         console.assert(
           fullScaleCounts.every((count) => count >= 14),
           `Full-board rendering should expose the whole mode across 24 frets for ${rootNote} ${modeName}.`,
+        );
+        console.assert(
+          getModeNoteNames(rootNote, modeName).length === MODES[modeName].length,
+          `Mode note list should expose all scale tones for ${rootNote} ${modeName}.`,
+        );
+        console.assert(
+          new Set(getModeNoteNames(rootNote, modeName)).size === MODES[modeName].length,
+          `Mode note list should not duplicate note names for ${rootNote} ${modeName}.`,
         );
       }
     });

@@ -526,6 +526,15 @@ body::after {
   overflow-wrap: anywhere;
 }
 
+.fretboard-scale-notes {
+  margin: -2px 0 16px;
+  color: color-mix(in srgb, var(--text) 90%, transparent);
+  font-size: 1rem;
+  line-height: 1.65;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
 .fretboard-wrap {
   overflow-x: auto;
   max-width: 100%;
