@@ -11,6 +11,7 @@
 - `Scale / Chord` 两种视图切换
 - 12 个主音选择
 - 七种自然调式：`Ionian / Dorian / Phrygian / Lydian / Mixolydian / Aeolian / Locrian`
+- 补充和声/旋律大小调：`Harmonic Major / Harmonic Minor / Melodic Major / Melodic Minor`
 - `3NPS Position 1-7` 高亮
 - 常见和弦高亮：`maj / min / 7 / maj7 / min7 / dim / aug / sus2 / sus4`
 - 和弦视图下支持 `C / A / G / E / D` 的 CAGED shape 强调
@@ -50,4 +51,5 @@ python3 -m http.server 4173
 
 - 当前版本只支持标准六弦吉他
 - 音名统一使用升号体系，不处理 `Bb / Eb` 这类等音拼写切换
+- 旋律大小调在页面中按固定 7 音集合显示，不区分传统上下行写法
 - 页面以练习器为目标，不包含声音播放、节拍器或收藏功能
