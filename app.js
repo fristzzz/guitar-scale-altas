@@ -29,18 +29,72 @@ const DEGREE_LABELS = {
 };
 const FRET_MARKERS = new Set([3, 5, 7, 9, 12, 15, 17, 19, 21, 24]);
 
-const MODES = {
-  Ionian: [0, 2, 4, 5, 7, 9, 11],
-  Dorian: [0, 2, 3, 5, 7, 9, 10],
-  Phrygian: [0, 1, 3, 5, 7, 8, 10],
-  Lydian: [0, 2, 4, 6, 7, 9, 11],
-  Mixolydian: [0, 2, 4, 5, 7, 9, 10],
-  Aeolian: [0, 2, 3, 5, 7, 8, 10],
-  Locrian: [0, 1, 3, 5, 6, 8, 10],
-  "Harmonic Major": [0, 2, 4, 5, 7, 8, 11],
-  "Harmonic Minor": [0, 2, 3, 5, 7, 8, 11],
-  "Melodic Major": [0, 2, 4, 5, 7, 8, 10],
-  "Melodic Minor": [0, 2, 3, 5, 7, 9, 11],
+function createScaleDefinition(
+  intervals,
+  {
+    notesPerString,
+    positionCount,
+    positionLabel,
+    systemSummary,
+    panelNote,
+    legendPracticeText,
+    windowCountMin,
+    windowCountMax,
+  },
+) {
+  return {
+    intervals,
+    notesPerString,
+    positionCount,
+    positionLabel,
+    systemSummary,
+    panelNote,
+    legendPracticeText,
+    windowCountMin,
+    windowCountMax,
+  };
+}
+
+const THREE_NPS_COPY = {
+  notesPerString: 3,
+  positionCount: 7,
+  positionLabel: "Position",
+  systemSummary: "3 Notes Per String",
+  panelNote:
+    "整块 24 品上的调内音都会显示，当前 3NPS 把位窗口会使用更强的高亮强调，根音会在开启时使用琥珀色突出。",
+  legendPracticeText:
+    "先固定同一个主音，依次切换七声音阶的 Position 1-7，观察根音和级数在横向与纵向上的位移关系。",
+  windowCountMin: 2,
+  windowCountMax: 3,
+};
+
+const PENTATONIC_COPY = {
+  notesPerString: 2,
+  positionCount: 5,
+  positionLabel: "Box",
+  systemSummary: "Pentatonic · 2 Notes Per String",
+  panelNote:
+    "整块 24 品上的五声音阶音都会显示，当前 box 窗口会使用更强的高亮强调，根音会在开启时使用琥珀色突出。",
+  legendPracticeText:
+    "先固定同一个主音，再依次切换 Box 1-5，观察五声音阶在不同区域的连接方式，以及相邻 box 之间的衔接。",
+  windowCountMin: 2,
+  windowCountMax: 2,
+};
+
+const SCALES = {
+  Ionian: createScaleDefinition([0, 2, 4, 5, 7, 9, 11], THREE_NPS_COPY),
+  Dorian: createScaleDefinition([0, 2, 3, 5, 7, 9, 10], THREE_NPS_COPY),
+  Phrygian: createScaleDefinition([0, 1, 3, 5, 7, 8, 10], THREE_NPS_COPY),
+  Lydian: createScaleDefinition([0, 2, 4, 6, 7, 9, 11], THREE_NPS_COPY),
+  Mixolydian: createScaleDefinition([0, 2, 4, 5, 7, 9, 10], THREE_NPS_COPY),
+  Aeolian: createScaleDefinition([0, 2, 3, 5, 7, 8, 10], THREE_NPS_COPY),
+  Locrian: createScaleDefinition([0, 1, 3, 5, 6, 8, 10], THREE_NPS_COPY),
+  "Major Pentatonic": createScaleDefinition([0, 2, 4, 7, 9], PENTATONIC_COPY),
+  "Minor Pentatonic": createScaleDefinition([0, 3, 5, 7, 10], PENTATONIC_COPY),
+  "Harmonic Major": createScaleDefinition([0, 2, 4, 5, 7, 8, 11], THREE_NPS_COPY),
+  "Harmonic Minor": createScaleDefinition([0, 2, 3, 5, 7, 8, 11], THREE_NPS_COPY),
+  "Melodic Major": createScaleDefinition([0, 2, 4, 5, 7, 8, 10], THREE_NPS_COPY),
+  "Melodic Minor": createScaleDefinition([0, 2, 3, 5, 7, 9, 11], THREE_NPS_COPY),
 };
 
 const CHORDS = {
@@ -698,18 +752,46 @@ function createOption(value, label) {
   return option;
 }
 
+function getScaleDefinition(modeName) {
+  return SCALES[modeName];
+}
+
+function resolveScalePosition(modeName, position) {
+  const { positionCount } = getScaleDefinition(modeName);
+
+  if (position >= 1 && position <= positionCount) {
+    return position;
+  }
+
+  return 1;
+}
+
+function populatePositionOptions(modeName) {
+  const scale = getScaleDefinition(modeName);
+  elements.position.innerHTML = "";
+
+  for (let position = 1; position <= scale.positionCount; position += 1) {
+    elements.position.appendChild(
+      createOption(position, `${scale.positionLabel} ${position}`),
+    );
+  }
+}
+
+function syncScalePosition(modeName, position = state.position) {
+  const nextPosition = resolveScalePosition(modeName, position);
+  populatePositionOptions(modeName);
+  state.position = nextPosition;
+  elements.position.value = String(nextPosition);
+}
+
 function populateControls() {
   NOTES.forEach((note) => {
     elements.rootNote.appendChild(createOption(note, note));
   });
 
-  Object.keys(MODES).forEach((modeName) => {
+  Object.keys(SCALES).forEach((modeName) => {
     elements.mode.appendChild(createOption(modeName, modeName));
   });
-
-  for (let position = 1; position <= 7; position += 1) {
-    elements.position.appendChild(createOption(position, `Position ${position}`));
-  }
 
   Object.entries(THEMES).forEach(([themeId, theme]) => {
     elements.theme.appendChild(createOption(themeId, theme.label));
@@ -720,9 +802,9 @@ function populateControls() {
   });
 
   updateViewModeButtons();
+  syncScalePosition(state.mode);
   elements.rootNote.value = state.rootNote;
   elements.mode.value = state.mode;
-  elements.position.value = String(state.position);
   elements.chordType.value = state.chordType;
   elements.theme.value = state.theme;
   elements.emphasizeRoot.checked = state.emphasizeRoot;
@@ -770,14 +852,14 @@ function updateViewModeUI() {
   updateLabelModeButtons();
 }
 
-function buildPositionTemplate(intervals, position) {
+function buildPositionTemplate(intervals, position, notesPerString) {
   const startDegreeIndex = position - 1;
   const noteSequence = [];
   let degreeIndex = startDegreeIndex;
   let octave = 0;
   let previousPitch = -Infinity;
 
-  for (let index = 0; index < STRING_TUNING.length * 3; index += 1) {
+  for (let index = 0; index < STRING_TUNING.length * notesPerString; index += 1) {
     let pitch = intervals[degreeIndex] + octave * 12;
 
     if (pitch <= previousPitch) {
@@ -796,7 +878,10 @@ function buildPositionTemplate(intervals, position) {
   }
 
   const strings = STRING_TUNING.map((_, stringIndex) => {
-    const slice = noteSequence.slice(stringIndex * 3, stringIndex * 3 + 3);
+    const slice = noteSequence.slice(
+      stringIndex * notesPerString,
+      stringIndex * notesPerString + notesPerString,
+    );
     return slice.map((note) => ({
       degree: note.degree,
       interval: note.interval,
@@ -823,7 +908,7 @@ function getStringRootFret(rootNote, stringIndex) {
   return (NOTE_INDEX[rootNote] - STRING_TUNING[stringIndex].pitchClass + NOTES.length) % NOTES.length;
 }
 
-function scoreWindowFit(windowStart, windowEnd, template, rootIndex) {
+function scoreWindowFit(windowStart, windowEnd, template, rootIndex, notesPerString) {
   const counts = [];
   let totalMatches = 0;
 
@@ -846,7 +931,10 @@ function scoreWindowFit(windowStart, windowEnd, template, rootIndex) {
     totalMatches += count;
   });
 
-  const penalty = counts.reduce((sum, count) => sum + Math.abs(3 - count) * 4, 0);
+  const penalty = counts.reduce(
+    (sum, count) => sum + Math.abs(notesPerString - count) * 4,
+    0,
+  );
 
   return {
     counts,
@@ -854,7 +942,7 @@ function scoreWindowFit(windowStart, windowEnd, template, rootIndex) {
   };
 }
 
-function resolveVisibleWindow(template, rootFret, rootIndex) {
+function resolveVisibleWindow(template, rootFret, rootIndex, notesPerString) {
   const width = template.window.max - template.window.min;
   const idealStart = rootFret + template.window.min;
   const candidateStarts = new Set();
@@ -873,7 +961,7 @@ function resolveVisibleWindow(template, rootFret, rootIndex) {
 
   candidateStarts.forEach((windowStart) => {
     const windowEnd = windowStart + width;
-    const fit = scoreWindowFit(windowStart, windowEnd, template, rootIndex);
+    const fit = scoreWindowFit(windowStart, windowEnd, template, rootIndex, notesPerString);
 
     if (!bestWindow || fit.score > bestWindow.score) {
       bestWindow = {
@@ -889,12 +977,18 @@ function resolveVisibleWindow(template, rootFret, rootIndex) {
 }
 
 function getHighlightedNotes(currentState) {
-  const intervals = MODES[currentState.mode];
+  const scale = getScaleDefinition(currentState.mode);
+  const { intervals, notesPerString } = scale;
   const modeIntervals = new Set(intervals);
   const rootIndex = NOTE_INDEX[currentState.rootNote];
   const rootFret = getLowERootFret(currentState.rootNote);
-  const template = buildPositionTemplate(intervals, currentState.position);
-  const { windowStart, windowEnd } = resolveVisibleWindow(template, rootFret, rootIndex);
+  const template = buildPositionTemplate(intervals, currentState.position, notesPerString);
+  const { windowStart, windowEnd } = resolveVisibleWindow(
+    template,
+    rootFret,
+    rootIndex,
+    notesPerString,
+  );
   const notes = [];
 
   STRING_TUNING.forEach((stringData, stringIndex) => {
@@ -933,13 +1027,15 @@ function getHighlightedNotes(currentState) {
 }
 
 function getModeFormula(modeName) {
-  return MODES[modeName].map((interval) => DEGREE_LABELS[interval]).join(" · ");
+  return getScaleDefinition(modeName).intervals.map((interval) => DEGREE_LABELS[interval]).join(" · ");
 }
 
 function getModeNoteNames(rootNote, modeName) {
   const rootIndex = NOTE_INDEX[rootNote];
 
-  return MODES[modeName].map((interval) => NOTES[(rootIndex + interval) % NOTES.length]);
+  return getScaleDefinition(modeName).intervals.map(
+    (interval) => NOTES[(rootIndex + interval) % NOTES.length],
+  );
 }
 
 function getChordFormula(chordType) {
@@ -1070,15 +1166,16 @@ function getRenderContext(currentState) {
     };
   }
 
+  const scale = getScaleDefinition(currentState.mode);
   const scaleContext = getHighlightedNotes(currentState);
   return {
     ...scaleContext,
-    summary: `${currentState.rootNote} ${currentState.mode} · Position ${currentState.position}`,
-    windowSummary: `24 Frets · Position Window ${scaleContext.windowStart}-${scaleContext.windowEnd}`,
+    summary: `${currentState.rootNote} ${currentState.mode} · ${scale.positionLabel} ${currentState.position}`,
+    windowSummary: `24 Frets · ${scale.positionLabel} Window ${scaleContext.windowStart}-${scaleContext.windowEnd}`,
     formulaSummary: getModeFormula(currentState.mode),
-    systemSummary: "3 Notes Per String",
-    panelNote: "整块 24 品上的调内音都会显示，当前 3NPS 把位窗口会使用更强的高亮强调，根音会在开启时使用琥珀色突出。",
-    legendPracticeText: "先固定同一个主音，依次切换七个调式与 Position 1-7，观察根音和级数在横向与纵向上的位移关系。",
+    systemSummary: scale.systemSummary,
+    panelNote: scale.panelNote,
+    legendPracticeText: scale.legendPracticeText,
     legendLabelText: "使用“音名”模式训练听觉和命名，使用“级数”模式训练调式功能感与即兴映射。",
     legendWindowText: "指板中较亮的木纹区域代表当前把位窗口。整块 24 品仍会显示全部调内音，方便你同时观察单个指型与全指板分布。",
     scaleNotesSummary: getModeNoteNames(currentState.rootNote, currentState.mode).join(", "),
@@ -1224,6 +1321,7 @@ function attachEvents() {
 
   elements.mode.addEventListener("change", (event) => {
     state.mode = event.target.value;
+    syncScalePosition(state.mode);
     renderFretboard(state);
   });
 
@@ -1277,8 +1375,8 @@ function attachEvents() {
 
 function runSelfCheck() {
   NOTES.forEach((rootNote) => {
-    Object.keys(MODES).forEach((modeName) => {
-      for (let position = 1; position <= 7; position += 1) {
+    Object.entries(SCALES).forEach(([modeName, scale]) => {
+      for (let position = 1; position <= scale.positionCount; position += 1) {
         const result = getHighlightedNotes({
           rootNote,
           mode: modeName,
@@ -1299,19 +1397,21 @@ function runSelfCheck() {
           `Visible window should stay inside board for ${rootNote} ${modeName} position ${position}.`,
         );
         console.assert(
-          perStringCounts.every((count) => count >= 2 && count <= 3),
-          `Each string should keep 2-3 notes in ${rootNote} ${modeName} position ${position}.`,
+          perStringCounts.every(
+            (count) => count >= scale.windowCountMin && count <= scale.windowCountMax,
+          ),
+          `Each string should keep ${scale.windowCountMin}-${scale.windowCountMax} notes in ${rootNote} ${modeName} position ${position}.`,
         );
         console.assert(
-          fullScaleCounts.every((count) => count >= 14),
+          fullScaleCounts.every((count) => count >= scale.intervals.length * 2),
           `Full-board rendering should expose the whole mode across 24 frets for ${rootNote} ${modeName}.`,
         );
         console.assert(
-          getModeNoteNames(rootNote, modeName).length === MODES[modeName].length,
+          getModeNoteNames(rootNote, modeName).length === scale.intervals.length,
           `Mode note list should expose all scale tones for ${rootNote} ${modeName}.`,
         );
         console.assert(
-          new Set(getModeNoteNames(rootNote, modeName)).size === MODES[modeName].length,
+          new Set(getModeNoteNames(rootNote, modeName)).size === scale.intervals.length,
           `Mode note list should not duplicate note names for ${rootNote} ${modeName}.`,
         );
       }
