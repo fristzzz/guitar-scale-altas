@@ -98,6 +98,30 @@
             <select id="position"></select>
           </label>
 
+          <fieldset class="toggle-group control-span-2" id="scaleChordGroup">
+            <legend class="control-label">级数和弦高亮</legend>
+            <label class="inline-switch" for="scaleChordEnabled">
+              <span class="switch-copy">在当前音阶上叠加和弦音高亮</span>
+              <input id="scaleChordEnabled" type="checkbox" />
+            </label>
+            <div class="compound-grid">
+              <label class="control-group control-group-compact">
+                <span class="control-label">级数</span>
+                <select id="scaleChordDegree"></select>
+              </label>
+              <label class="control-group control-group-compact">
+                <span class="control-label">类型</span>
+                <select id="scaleChordType">
+                  <option value="triad">三和弦</option>
+                  <option value="seventh">七和弦</option>
+                </select>
+              </label>
+            </div>
+            <p class="control-hint is-hidden" id="scaleChordHint">
+              当前仅支持七声音阶的级数和弦高亮。
+            </p>
+          </fieldset>
+
           <label class="control-group is-hidden" id="chordTypeGroup">
             <span class="control-label">和弦</span>
             <select id="chordType"></select>

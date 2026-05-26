@@ -109,6 +109,17 @@ const CHORDS = {
   sus4: [0, 5, 7],
 };
 
+const SCALE_CHORD_STACK_TYPES = {
+  triad: {
+    label: "Triad",
+    steps: [0, 2, 4],
+  },
+  seventh: {
+    label: "Seventh",
+    steps: [0, 2, 4, 6],
+  },
+};
+
 const CHORD_DEGREE_LABELS = {
   0: "1",
   2: "2",
@@ -668,6 +679,9 @@ const state = {
   rootNote: "C",
   mode: "Ionian",
   position: 1,
+  scaleChordEnabled: false,
+  scaleChordDegree: 1,
+  scaleChordType: "triad",
   chordType: "maj",
   chordShape: "E",
   cagedEnabled: false,
@@ -682,12 +696,17 @@ const elements = {
   rootNoteGroup: document.querySelector("#rootNoteGroup"),
   modeGroup: document.querySelector("#modeGroup"),
   positionGroup: document.querySelector("#positionGroup"),
+  scaleChordGroup: document.querySelector("#scaleChordGroup"),
   chordTypeGroup: document.querySelector("#chordTypeGroup"),
   chordShapeGroup: document.querySelector("#chordShapeGroup"),
   labelModeGroup: document.querySelector("#labelModeGroup"),
   rootNote: document.querySelector("#rootNote"),
   mode: document.querySelector("#mode"),
   position: document.querySelector("#position"),
+  scaleChordEnabled: document.querySelector("#scaleChordEnabled"),
+  scaleChordDegree: document.querySelector("#scaleChordDegree"),
+  scaleChordType: document.querySelector("#scaleChordType"),
+  scaleChordHint: document.querySelector("#scaleChordHint"),
   chordType: document.querySelector("#chordType"),
   chordShape: document.querySelector("#chordShape"),
   theme: document.querySelector("#theme"),
@@ -756,6 +775,10 @@ function getScaleDefinition(modeName) {
   return SCALES[modeName];
 }
 
+function supportsScaleDegreeChords(modeName) {
+  return getScaleDefinition(modeName).intervals.length === 7;
+}
+
 function resolveScalePosition(modeName, position) {
   const { positionCount } = getScaleDefinition(modeName);
 
@@ -797,6 +820,10 @@ function populateControls() {
     elements.theme.appendChild(createOption(themeId, theme.label));
   });
 
+  for (let degree = 1; degree <= 7; degree += 1) {
+    elements.scaleChordDegree.appendChild(createOption(degree, `Degree ${degree}`));
+  }
+
   Object.keys(CHORDS).forEach((chordType) => {
     elements.chordType.appendChild(createOption(chordType, chordType));
   });
@@ -805,6 +832,9 @@ function populateControls() {
   syncScalePosition(state.mode);
   elements.rootNote.value = state.rootNote;
   elements.mode.value = state.mode;
+  elements.scaleChordEnabled.checked = state.scaleChordEnabled;
+  elements.scaleChordDegree.value = String(state.scaleChordDegree);
+  elements.scaleChordType.value = state.scaleChordType;
   elements.chordType.value = state.chordType;
   elements.theme.value = state.theme;
   elements.emphasizeRoot.checked = state.emphasizeRoot;
@@ -837,15 +867,23 @@ function updateLabelModeButtons() {
 
 function updateViewModeUI() {
   const isChordView = state.viewMode === "chord";
+  const scaleChordSupported = supportsScaleDegreeChords(state.mode);
   state.cagedEnabled = isChordView && SUPPORTED_CAGED_CHORD_TYPES.has(state.chordType);
 
   elements.modeGroup.classList.toggle("is-hidden", isChordView);
   elements.positionGroup.classList.toggle("is-hidden", isChordView);
+  elements.scaleChordGroup.classList.toggle("is-hidden", isChordView);
   elements.chordTypeGroup.classList.toggle("is-hidden", !isChordView);
   elements.chordShapeGroup.classList.toggle("is-hidden", !isChordView);
 
   elements.mode.disabled = isChordView;
   elements.position.disabled = isChordView;
+  elements.scaleChordEnabled.disabled = isChordView || !scaleChordSupported;
+  elements.scaleChordDegree.disabled =
+    isChordView || !scaleChordSupported || !state.scaleChordEnabled;
+  elements.scaleChordType.disabled =
+    isChordView || !scaleChordSupported || !state.scaleChordEnabled;
+  elements.scaleChordHint.classList.toggle("is-hidden", isChordView || scaleChordSupported);
   elements.chordType.disabled = !isChordView;
   elements.cagedHint.classList.toggle("is-hidden", state.cagedEnabled || !isChordView);
   updateChordShapeButtons();
@@ -1038,6 +1076,48 @@ function getModeNoteNames(rootNote, modeName) {
   );
 }
 
+function getScaleDegreeChordContext(currentState) {
+  if (!supportsScaleDegreeChords(currentState.mode)) {
+    return {
+      supported: false,
+      noteKeys: new Set(),
+      chordIntervals: [],
+      chordRootInterval: null,
+      summaryLabel: "",
+    };
+  }
+
+  const { intervals } = getScaleDefinition(currentState.mode);
+  const stackType = SCALE_CHORD_STACK_TYPES[currentState.scaleChordType];
+  const degreeIndex = currentState.scaleChordDegree - 1;
+  const chordIntervals = stackType.steps.map(
+    (step) => intervals[(degreeIndex + step) % intervals.length],
+  );
+  const chordIntervalSet = new Set(chordIntervals);
+  const chordRootInterval = intervals[degreeIndex];
+  const rootIndex = NOTE_INDEX[currentState.rootNote];
+  const noteKeys = new Set();
+
+  STRING_TUNING.forEach((stringData, stringIndex) => {
+    for (let fret = 0; fret <= FRET_COUNT; fret += 1) {
+      const pitchClass = (stringData.pitchClass + fret) % NOTES.length;
+      const interval = (pitchClass - rootIndex + NOTES.length) % NOTES.length;
+
+      if (chordIntervalSet.has(interval)) {
+        noteKeys.add(`${stringIndex}-${fret}`);
+      }
+    }
+  });
+
+  return {
+    supported: true,
+    noteKeys,
+    chordIntervals,
+    chordRootInterval,
+    summaryLabel: `Degree ${currentState.scaleChordDegree} ${stackType.label}`,
+  };
+}
+
 function getChordFormula(chordType) {
   return CHORDS[chordType].map((interval) => CHORD_DEGREE_LABELS[interval]).join(" · ");
 }
@@ -1168,15 +1248,42 @@ function getRenderContext(currentState) {
 
   const scale = getScaleDefinition(currentState.mode);
   const scaleContext = getHighlightedNotes(currentState);
+  const scaleChordContext = currentState.scaleChordEnabled
+    ? getScaleDegreeChordContext(currentState)
+    : {
+        supported: false,
+        noteKeys: new Set(),
+        chordIntervals: [],
+        chordRootInterval: null,
+        summaryLabel: "",
+      };
+  const scaleChordActive = currentState.scaleChordEnabled && scaleChordContext.supported;
+  const notes = scaleContext.notes.map((note) => {
+    const key = `${note.stringIndex}-${note.fret}`;
+    return {
+      ...note,
+      inScaleChord: scaleChordContext.noteKeys.has(key),
+      isScaleChordRoot:
+        scaleChordContext.supported && note.interval === scaleChordContext.chordRootInterval,
+    };
+  });
+
   return {
     ...scaleContext,
-    summary: `${currentState.rootNote} ${currentState.mode} · ${scale.positionLabel} ${currentState.position}`,
+    notes,
+    summary: scaleChordActive
+      ? `${currentState.rootNote} ${currentState.mode} · ${scale.positionLabel} ${currentState.position} · ${scaleChordContext.summaryLabel}`
+      : `${currentState.rootNote} ${currentState.mode} · ${scale.positionLabel} ${currentState.position}`,
     windowSummary: `24 Frets · ${scale.positionLabel} Window ${scaleContext.windowStart}-${scaleContext.windowEnd}`,
     formulaSummary: getModeFormula(currentState.mode),
     systemSummary: scale.systemSummary,
-    panelNote: scale.panelNote,
+    panelNote: scaleChordActive
+      ? "整块 24 品上的调内音都会显示，当前 position 或 box 仍保留原有高亮；所选级数和弦会额外用外圈强调。"
+      : scale.panelNote,
     legendPracticeText: scale.legendPracticeText,
-    legendLabelText: "使用“音名”模式训练听觉和命名，使用“级数”模式训练调式功能感与即兴映射。",
+    legendLabelText: scaleChordActive
+      ? "标签仍显示音名或音阶级数；级数和弦高亮只改变样式，方便你在同一块音阶图里观察和声音。"
+      : "使用“音名”模式训练听觉和命名，使用“级数”模式训练调式功能感与即兴映射。",
     legendWindowText: "指板中较亮的木纹区域代表当前把位窗口。整块 24 品仍会显示全部调内音，方便你同时观察单个指型与全指板分布。",
     scaleNotesSummary: getModeNoteNames(currentState.rootNote, currentState.mode).join(", "),
   };
@@ -1252,6 +1359,12 @@ function renderFretboard(currentState) {
         if (currentState.viewMode === "scale" && highlight.inPosition) {
           marker.classList.add("is-position");
         }
+        if (currentState.viewMode === "scale" && highlight.inScaleChord) {
+          marker.classList.add("is-scale-chord");
+        }
+        if (currentState.viewMode === "scale" && highlight.isScaleChordRoot) {
+          marker.classList.add("is-scale-chord-root");
+        }
         marker.textContent =
           currentState.viewMode === "chord"
             ? currentState.chordLabelMode === "degree"
@@ -1322,11 +1435,28 @@ function attachEvents() {
   elements.mode.addEventListener("change", (event) => {
     state.mode = event.target.value;
     syncScalePosition(state.mode);
+    updateViewModeUI();
     renderFretboard(state);
   });
 
   elements.position.addEventListener("change", (event) => {
     state.position = Number(event.target.value);
+    renderFretboard(state);
+  });
+
+  elements.scaleChordEnabled.addEventListener("change", (event) => {
+    state.scaleChordEnabled = event.target.checked;
+    updateViewModeUI();
+    renderFretboard(state);
+  });
+
+  elements.scaleChordDegree.addEventListener("change", (event) => {
+    state.scaleChordDegree = Number(event.target.value);
+    renderFretboard(state);
+  });
+
+  elements.scaleChordType.addEventListener("change", (event) => {
+    state.scaleChordType = event.target.value;
     renderFretboard(state);
   });
 
@@ -1438,6 +1568,58 @@ function runSelfCheck() {
         result.notes.some((note) => note.isRoot),
         `Chord rendering should include at least one root for ${rootNote} ${chordType}.`,
       );
+    });
+  });
+
+  NOTES.forEach((rootNote) => {
+    Object.keys(SCALE_CHORD_STACK_TYPES).forEach((scaleChordType) => {
+      Object.keys(SCALES).forEach((modeName) => {
+        for (let scaleChordDegree = 1; scaleChordDegree <= 7; scaleChordDegree += 1) {
+          const result = getScaleDegreeChordContext({
+            rootNote,
+            mode: modeName,
+            scaleChordDegree,
+            scaleChordType,
+          });
+
+          if (!supportsScaleDegreeChords(modeName)) {
+            console.assert(
+              !result.supported && result.noteKeys.size === 0,
+              `Scale-degree chord overlay should stay disabled for ${rootNote} ${modeName}.`,
+            );
+            continue;
+          }
+
+          const expectedSize = SCALE_CHORD_STACK_TYPES[scaleChordType].steps.length;
+          const scaleIntervals = new Set(getScaleDefinition(modeName).intervals);
+
+          console.assert(
+            result.supported,
+            `Scale-degree chord overlay should be supported for ${rootNote} ${modeName}.`,
+          );
+          console.assert(
+            result.chordIntervals.length === expectedSize,
+            `Scale-degree chord overlay should expose ${expectedSize} intervals for ${rootNote} ${modeName} degree ${scaleChordDegree}.`,
+          );
+          console.assert(
+            new Set(result.chordIntervals).size === expectedSize,
+            `Scale-degree chord overlay should not duplicate intervals for ${rootNote} ${modeName} degree ${scaleChordDegree}.`,
+          );
+          console.assert(
+            result.chordIntervals.every((interval) => scaleIntervals.has(interval)),
+            `Scale-degree chord overlay should stay inside the scale for ${rootNote} ${modeName} degree ${scaleChordDegree}.`,
+          );
+          console.assert(
+            [...result.noteKeys].some((key) => {
+              const [stringIndex, fret] = key.split("-").map(Number);
+              const pitchClass = (STRING_TUNING[stringIndex].pitchClass + fret) % NOTES.length;
+              const interval = (pitchClass - NOTE_INDEX[rootNote] + NOTES.length) % NOTES.length;
+              return interval === result.chordRootInterval;
+            }),
+            `Scale-degree chord overlay should include a chord root for ${rootNote} ${modeName} degree ${scaleChordDegree}.`,
+          );
+        }
+      });
     });
   });
 

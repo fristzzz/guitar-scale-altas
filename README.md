@@ -15,6 +15,7 @@
 - 补充和声/旋律大小调：`Harmonic Major / Harmonic Minor / Melodic Major / Melodic Minor`
 - `3NPS Position 1-7` 高亮
 - 五声音阶 `5 Box` 高亮
+- `Scale` 视图下支持按级数叠加和弦高亮，可选 `三和弦 / 七和弦`，当前仅支持七声音阶
 - 常见和弦高亮：`maj / min / 7 / maj7 / min7 / dim / aug / sus2 / sus4`
 - 和弦视图下支持 `C / A / G / E / D` 的 CAGED shape 强调
 - 标签支持显示音名或级数/和弦音程

@@ -397,6 +397,44 @@ body::after {
     color-mix(in srgb, var(--chrome-bg) 92%, transparent);
 }
 
+.control-group-compact {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.compound-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.inline-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--chrome-border) 82%, transparent);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-top) 145%, transparent), transparent),
+    color-mix(in srgb, var(--chrome-bg) 78%, transparent);
+}
+
+.inline-switch input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.inline-switch input:focus {
+  outline: 2px solid rgba(224, 162, 74, 0.55);
+  outline-offset: 2px;
+}
+
 .control-group select:focus,
 .pill:focus,
 .switch-group input:focus {
@@ -643,6 +681,20 @@ body::after {
     color 160ms ease;
 }
 
+.note-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
 .note-dot.is-scale {
   color: var(--scale-text);
   background:
@@ -681,6 +733,23 @@ body::after {
     0 0 0 2px color-mix(in srgb, var(--position-border) 28%, transparent),
     0 0 14px color-mix(in srgb, var(--position-shadow) 82%, transparent),
     0 0 24px color-mix(in srgb, var(--position-shadow) 56%, transparent);
+}
+
+.note-dot.is-scale-chord::after {
+  opacity: 1;
+  border: 2px solid color-mix(in srgb, var(--accent) 86%, white 14%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 0 14px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.note-dot.is-scale-chord-root::after {
+  opacity: 1;
+  inset: -6px;
+  border: 2px solid color-mix(in srgb, var(--accent) 92%, white 8%);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 4%, var(--root-shadow));
 }
 
 .note-dot.is-root {
@@ -814,6 +883,10 @@ body::after {
 
   .panel-heading {
     align-items: start;
+  }
+
+  .compound-grid {
+    grid-template-columns: 1fr;
   }
 }
 
