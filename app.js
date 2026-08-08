@@ -33,6 +33,9 @@ function createScaleDefinition(
   intervals,
   {
     notesPerString,
+    degreeLabels = DEGREE_LABELS,
+    positionIntervals = intervals,
+    positionExtraIntervals = [],
     positionCount,
     positionLabel,
     systemSummary,
@@ -45,6 +48,9 @@ function createScaleDefinition(
   return {
     intervals,
     notesPerString,
+    degreeLabels,
+    positionIntervals,
+    positionExtraIntervals,
     positionCount,
     positionLabel,
     systemSummary,
@@ -81,6 +87,22 @@ const PENTATONIC_COPY = {
   windowCountMax: 2,
 };
 
+const BLUES_COPY = {
+  ...PENTATONIC_COPY,
+  degreeLabels: {
+    ...DEGREE_LABELS,
+    6: "b5",
+  },
+  positionIntervals: [0, 3, 5, 7, 10],
+  positionExtraIntervals: [6],
+  systemSummary: "Blues Scale · 5 Box",
+  panelNote:
+    "整块 24 品上的布鲁斯音阶音都会显示，当前 box 会突出小调五声音阶骨架，并加入经过音 b5。",
+  legendPracticeText:
+    "依次切换 Box 1-5，先确认小调五声音阶骨架，再观察 b5 经过音如何连接 4 和 5。",
+  windowCountMax: 3,
+};
+
 const SCALES = {
   Ionian: createScaleDefinition([0, 2, 4, 5, 7, 9, 11], THREE_NPS_COPY),
   Dorian: createScaleDefinition([0, 2, 3, 5, 7, 9, 10], THREE_NPS_COPY),
@@ -91,6 +113,7 @@ const SCALES = {
   Locrian: createScaleDefinition([0, 1, 3, 5, 6, 8, 10], THREE_NPS_COPY),
   "Major Pentatonic": createScaleDefinition([0, 2, 4, 7, 9], PENTATONIC_COPY),
   "Minor Pentatonic": createScaleDefinition([0, 3, 5, 7, 10], PENTATONIC_COPY),
+  Blues: createScaleDefinition([0, 3, 5, 6, 7, 10], BLUES_COPY),
   "Harmonic Major": createScaleDefinition([0, 2, 4, 5, 7, 8, 11], THREE_NPS_COPY),
   "Harmonic Minor": createScaleDefinition([0, 2, 3, 5, 7, 8, 11], THREE_NPS_COPY),
   "Melodic Major": createScaleDefinition([0, 2, 4, 5, 7, 8, 10], THREE_NPS_COPY),
@@ -112,12 +135,32 @@ const CHORDS = {
 const SCALE_CHORD_STACK_TYPES = {
   triad: {
     label: "Triad",
+    summaryLabel: "级数和弦（三和弦）",
     steps: [0, 2, 4],
   },
   seventh: {
     label: "Seventh",
+    summaryLabel: "级数和弦（七和弦）",
     steps: [0, 2, 4, 6],
   },
+};
+
+const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII"];
+const TRIAD_QUALITY_NAMES = {
+  "0,4,7": { name: "maj", suffix: "", romanSuffix: "", lowercase: false },
+  "0,3,7": { name: "min", suffix: "m", romanSuffix: "", lowercase: true },
+  "0,3,6": { name: "dim", suffix: "dim", romanSuffix: "°", lowercase: true },
+  "0,4,8": { name: "aug", suffix: "aug", romanSuffix: "+", lowercase: false },
+};
+const SEVENTH_QUALITY_NAMES = {
+  "0,4,7,11": { name: "maj7", suffix: "maj7", romanSuffix: "maj7", lowercase: false },
+  "0,4,7,10": { name: "7", suffix: "7", romanSuffix: "7", lowercase: false },
+  "0,3,7,10": { name: "min7", suffix: "m7", romanSuffix: "7", lowercase: true },
+  "0,3,7,11": { name: "minMaj7", suffix: "mMaj7", romanSuffix: "maj7", lowercase: true },
+  "0,3,6,10": { name: "m7b5", suffix: "m7b5", romanSuffix: "ø", lowercase: true },
+  "0,3,6,9": { name: "dim7", suffix: "dim7", romanSuffix: "°7", lowercase: true },
+  "0,4,8,11": { name: "augMaj7", suffix: "augMaj7", romanSuffix: "+maj7", lowercase: false },
+  "0,4,8,10": { name: "aug7", suffix: "aug7", romanSuffix: "+7", lowercase: false },
 };
 
 const CHORD_DEGREE_LABELS = {
@@ -718,6 +761,9 @@ const elements = {
   windowSummary: document.querySelector("#windowSummary"),
   formulaSummary: document.querySelector("#formulaSummary"),
   systemSummary: document.querySelector("#systemSummary"),
+  diatonicChordGroup: document.querySelector("#diatonicChordGroup"),
+  diatonicChordLabel: document.querySelector("#diatonicChordLabel"),
+  diatonicChordSummary: document.querySelector("#diatonicChordSummary"),
   panelNote: document.querySelector("#panelNote"),
   legendPracticeText: document.querySelector("#legendPracticeText"),
   legendLabelText: document.querySelector("#legendLabelText"),
@@ -1016,11 +1062,20 @@ function resolveVisibleWindow(template, rootFret, rootIndex, notesPerString) {
 
 function getHighlightedNotes(currentState) {
   const scale = getScaleDefinition(currentState.mode);
-  const { intervals, notesPerString } = scale;
+  const {
+    intervals,
+    notesPerString,
+    positionIntervals,
+    positionExtraIntervals,
+  } = scale;
   const modeIntervals = new Set(intervals);
   const rootIndex = NOTE_INDEX[currentState.rootNote];
   const rootFret = getLowERootFret(currentState.rootNote);
-  const template = buildPositionTemplate(intervals, currentState.position, notesPerString);
+  const template = buildPositionTemplate(
+    positionIntervals,
+    currentState.position,
+    notesPerString,
+  );
   const { windowStart, windowEnd } = resolveVisibleWindow(
     template,
     rootFret,
@@ -1033,6 +1088,7 @@ function getHighlightedNotes(currentState) {
     const allowedIntervals = new Set(
       template.strings[stringIndex].map((entry) => entry.interval),
     );
+    positionExtraIntervals.forEach((interval) => allowedIntervals.add(interval));
 
     for (let fret = 0; fret <= FRET_COUNT; fret += 1) {
       const pitchClass = (stringData.pitchClass + fret) % NOTES.length;
@@ -1047,7 +1103,7 @@ function getHighlightedNotes(currentState) {
         fret,
         noteName: NOTES[pitchClass],
         interval,
-        degree: DEGREE_LABELS[interval],
+        degree: scale.degreeLabels[interval],
         isRoot: interval === 0,
         inPosition:
           fret >= windowStart &&
@@ -1065,7 +1121,8 @@ function getHighlightedNotes(currentState) {
 }
 
 function getModeFormula(modeName) {
-  return getScaleDefinition(modeName).intervals.map((interval) => DEGREE_LABELS[interval]).join(" · ");
+  const scale = getScaleDefinition(modeName);
+  return scale.intervals.map((interval) => scale.degreeLabels[interval]).join(" · ");
 }
 
 function getModeNoteNames(rootNote, modeName) {
@@ -1074,6 +1131,80 @@ function getModeNoteNames(rootNote, modeName) {
   return getScaleDefinition(modeName).intervals.map(
     (interval) => NOTES[(rootIndex + interval) % NOTES.length],
   );
+}
+
+function normalizeChordIntervals(chordIntervals) {
+  const rootInterval = chordIntervals[0];
+  return chordIntervals
+    .map((interval) => (interval - rootInterval + NOTES.length) % NOTES.length)
+    .sort((left, right) => left - right);
+}
+
+function getChordQualityDefinition(stackType, chordIntervals) {
+  const normalizedKey = normalizeChordIntervals(chordIntervals).join(",");
+  const qualityMap =
+    stackType === "triad" ? TRIAD_QUALITY_NAMES : SEVENTH_QUALITY_NAMES;
+
+  return (
+    qualityMap[normalizedKey] ?? {
+      name: normalizedKey,
+      suffix: `(${normalizedKey})`,
+      romanSuffix: "",
+      lowercase: false,
+    }
+  );
+}
+
+function getRomanChordLabel(degree, quality) {
+  const baseNumeral = ROMAN_NUMERALS[degree - 1];
+  const numeral = quality.lowercase ? baseNumeral.toLowerCase() : baseNumeral;
+  return `${numeral}${quality.romanSuffix}`;
+}
+
+function formatChordName(noteName, quality) {
+  return `${noteName}${quality.suffix}`;
+}
+
+function getDiatonicChordSummary(currentState) {
+  if (currentState.viewMode !== "scale" || !supportsScaleDegreeChords(currentState.mode)) {
+    return {
+      supported: false,
+      label: "",
+      text: "",
+      chords: [],
+    };
+  }
+
+  const modeNotes = getModeNoteNames(currentState.rootNote, currentState.mode);
+  const { intervals } = getScaleDefinition(currentState.mode);
+  const stackType = SCALE_CHORD_STACK_TYPES[currentState.scaleChordType];
+  const chords = intervals.map((_, degreeIndex) => {
+    const chordIntervals = stackType.steps.map(
+      (step) => intervals[(degreeIndex + step) % intervals.length],
+    );
+    const quality = getChordQualityDefinition(currentState.scaleChordType, chordIntervals);
+    const degree = degreeIndex + 1;
+    const rootNote = modeNotes[degreeIndex];
+    const romanLabel = getRomanChordLabel(degree, quality);
+    const chordName = formatChordName(rootNote, quality);
+
+    return {
+      degree,
+      rootNote,
+      quality: quality.name,
+      romanLabel,
+      chordName,
+      label: `${romanLabel} ${chordName}`,
+      intervals: chordIntervals,
+    };
+  });
+
+  return {
+    supported: true,
+    label: stackType.summaryLabel,
+    text: chords.map((chord) => chord.label).join(" · "),
+    chords,
+  };
 }
 
 function getScaleDegreeChordContext(currentState) {
@@ -1243,11 +1374,14 @@ function getRenderContext(currentState) {
         ? "当前会保留整板和弦音，同时只对一个标准 CAGED shape 主区域做更强高亮，避免把和弦图挤成一整片。"
         : "和弦视图不会使用 3NPS Position 过滤，整块 24 品都会显示当前和弦音；非 maj/min 时 CAGED shape 高亮不可用。",
       scaleNotesSummary: "",
+      diatonicChordLabel: "",
+      diatonicChordSummary: "",
     };
   }
 
   const scale = getScaleDefinition(currentState.mode);
   const scaleContext = getHighlightedNotes(currentState);
+  const diatonicChordSummary = getDiatonicChordSummary(currentState);
   const scaleChordContext = currentState.scaleChordEnabled
     ? getScaleDegreeChordContext(currentState)
     : {
@@ -1286,6 +1420,8 @@ function getRenderContext(currentState) {
       : "使用“音名”模式训练听觉和命名，使用“级数”模式训练调式功能感与即兴映射。",
     legendWindowText: "指板中较亮的木纹区域代表当前把位窗口。整块 24 品仍会显示全部调内音，方便你同时观察单个指型与全指板分布。",
     scaleNotesSummary: getModeNoteNames(currentState.rootNote, currentState.mode).join(", "),
+    diatonicChordLabel: diatonicChordSummary.label,
+    diatonicChordSummary: diatonicChordSummary.text,
   };
 }
 
@@ -1303,6 +1439,8 @@ function renderFretboard(currentState) {
     legendLabelText,
     legendWindowText,
     scaleNotesSummary,
+    diatonicChordLabel,
+    diatonicChordSummary,
   } = getRenderContext(currentState);
   const highlightedMap = new Map(
     notes.map((note) => [`${note.stringIndex}-${note.fret}`, note]),
@@ -1408,6 +1546,9 @@ function renderFretboard(currentState) {
   elements.windowSummary.textContent = windowSummary;
   elements.formulaSummary.textContent = formulaSummary;
   elements.systemSummary.textContent = systemSummary;
+  elements.diatonicChordLabel.textContent = diatonicChordLabel;
+  elements.diatonicChordSummary.textContent = diatonicChordSummary;
+  elements.diatonicChordGroup.classList.toggle("is-hidden", !diatonicChordSummary);
   elements.panelNote.textContent = panelNote;
   elements.legendPracticeText.textContent = legendPracticeText;
   elements.legendLabelText.textContent = legendLabelText;
@@ -1619,6 +1760,58 @@ function runSelfCheck() {
             `Scale-degree chord overlay should include a chord root for ${rootNote} ${modeName} degree ${scaleChordDegree}.`,
           );
         }
+      });
+    });
+  });
+
+  NOTES.forEach((rootNote) => {
+    Object.keys(SCALE_CHORD_STACK_TYPES).forEach((scaleChordType) => {
+      Object.keys(SCALES).forEach((modeName) => {
+        const result = getDiatonicChordSummary({
+          viewMode: "scale",
+          rootNote,
+          mode: modeName,
+          scaleChordType,
+        });
+
+        if (!supportsScaleDegreeChords(modeName)) {
+          console.assert(
+            !result.supported && result.chords.length === 0 && result.text === "",
+            `Diatonic chord list should stay disabled for ${rootNote} ${modeName}.`,
+          );
+          return;
+        }
+
+        const modeNotes = getModeNoteNames(rootNote, modeName);
+
+        console.assert(
+          result.supported,
+          `Diatonic chord list should be supported for ${rootNote} ${modeName}.`,
+        );
+        console.assert(
+          result.chords.length === 7,
+          `Diatonic chord list should expose 7 chords for ${rootNote} ${modeName}.`,
+        );
+        console.assert(
+          result.chords.every((chord, index) => chord.rootNote === modeNotes[index]),
+          `Diatonic chord roots should align with mode notes for ${rootNote} ${modeName}.`,
+        );
+        console.assert(
+          result.chords.every((chord) => chord.label.length > 0 && chord.chordName.length > 0),
+          `Diatonic chord list should expose non-empty labels for ${rootNote} ${modeName}.`,
+        );
+        console.assert(
+          result.chords.every((chord) => {
+            const overlay = getScaleDegreeChordContext({
+              rootNote,
+              mode: modeName,
+              scaleChordDegree: chord.degree,
+              scaleChordType,
+            });
+            return overlay.chordIntervals.join(",") === chord.intervals.join(",");
+          }),
+          `Diatonic chord list should match overlay chord intervals for ${rootNote} ${modeName}.`,
+        );
       });
     });
   });

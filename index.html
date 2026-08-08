@@ -29,8 +29,107 @@
               <span class="hero-chip">Theme Switcher</span>
             </div>
           </header>
+        </section>
 
-          <aside class="hero-rail">
+        <section class="workspace-grid">
+          <section class="control-suite">
+            <div class="section-heading workspace-heading">
+              <div>
+                <p class="section-kicker">Workspace</p>
+                <h2>练习控制台</h2>
+              </div>
+              <p class="section-note">
+                先选视图，再决定主音与调式或和弦，再用标签、主题和根音强调切换不同练习观察角度。
+              </p>
+            </div>
+
+            <section class="control-panel" aria-label="音阶控制面板">
+            <fieldset class="toggle-group" id="viewModeGroup">
+              <legend class="control-label">视图</legend>
+              <div class="pill-row" id="viewMode">
+                <button type="button" class="pill is-active" data-value="scale">Scale</button>
+                <button type="button" class="pill" data-value="chord">Chord</button>
+              </div>
+            </fieldset>
+
+            <label class="control-group" id="rootNoteGroup">
+              <span class="control-label">主音</span>
+              <select id="rootNote"></select>
+            </label>
+
+            <label class="control-group" id="modeGroup">
+              <span class="control-label">调式</span>
+              <select id="mode"></select>
+            </label>
+
+            <label class="control-group" id="positionGroup">
+              <span class="control-label">指型</span>
+              <select id="position"></select>
+            </label>
+
+            <fieldset class="toggle-group control-span-2" id="scaleChordGroup">
+              <legend class="control-label">级数和弦高亮</legend>
+              <label class="inline-switch" for="scaleChordEnabled">
+                <span class="switch-copy">在当前音阶上叠加和弦音高亮</span>
+                <input id="scaleChordEnabled" type="checkbox" />
+              </label>
+              <div class="compound-grid">
+                <label class="control-group control-group-compact">
+                  <span class="control-label">级数</span>
+                  <select id="scaleChordDegree"></select>
+                </label>
+                <label class="control-group control-group-compact">
+                  <span class="control-label">类型</span>
+                  <select id="scaleChordType">
+                    <option value="triad">三和弦</option>
+                    <option value="seventh">七和弦</option>
+                  </select>
+                </label>
+              </div>
+              <p class="control-hint is-hidden" id="scaleChordHint">
+                当前仅支持七声音阶的级数和弦高亮。
+              </p>
+            </fieldset>
+
+            <label class="control-group is-hidden" id="chordTypeGroup">
+              <span class="control-label">和弦</span>
+              <select id="chordType"></select>
+            </label>
+
+            <fieldset class="toggle-group is-hidden control-span-2" id="chordShapeGroup">
+              <legend class="control-label">CAGED Shape</legend>
+              <div class="pill-row" id="chordShape">
+                <button type="button" class="pill" data-value="C">C</button>
+                <button type="button" class="pill" data-value="A">A</button>
+                <button type="button" class="pill" data-value="G">G</button>
+                <button type="button" class="pill is-active" data-value="E">E</button>
+                <button type="button" class="pill" data-value="D">D</button>
+              </div>
+              <p class="control-hint is-hidden" id="cagedHint">当前仅支持 maj/min 的 CAGED 高亮。</p>
+            </fieldset>
+
+            <label class="control-group" id="themeGroup">
+              <span class="control-label">主题</span>
+              <select id="theme"></select>
+            </label>
+
+            <fieldset class="toggle-group" id="labelModeGroup">
+              <legend class="control-label">标签显示</legend>
+              <div class="pill-row" id="labelMode">
+                <button type="button" class="pill is-active" data-value="note">音名</button>
+                <button type="button" class="pill" data-value="degree">级数</button>
+              </div>
+            </fieldset>
+
+            <label class="switch-group" for="emphasizeRoot">
+              <span class="control-label">根音强调</span>
+              <span class="switch-copy">单独高亮主音位置</span>
+              <input id="emphasizeRoot" type="checkbox" checked />
+            </label>
+          </section>
+          </section>
+
+          <aside class="context-rail" aria-label="当前练习与练习上下文">
             <div class="hero-card">
               <p class="card-label">当前练习</p>
               <p class="card-value" id="selectionSummary">C Ionian · Position 1</p>
@@ -59,105 +158,13 @@
                   <span class="chip-value" id="systemSummary">Scale Systems</span>
                 </div>
               </div>
+
+              <div class="status-chip is-hidden" id="diatonicChordGroup">
+                <span class="chip-label" id="diatonicChordLabel">级数和弦</span>
+                <span class="chip-value chip-value-rich" id="diatonicChordSummary"></span>
+              </div>
             </section>
           </aside>
-        </section>
-
-        <section class="control-suite">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker">Workspace</p>
-              <h2>练习控制台</h2>
-            </div>
-            <p class="section-note">
-              先选视图，再决定主音与调式或和弦，再用标签、主题和根音强调切换不同练习观察角度。
-            </p>
-          </div>
-
-          <section class="control-panel" aria-label="音阶控制面板">
-          <fieldset class="toggle-group" id="viewModeGroup">
-            <legend class="control-label">视图</legend>
-            <div class="pill-row" id="viewMode">
-              <button type="button" class="pill is-active" data-value="scale">Scale</button>
-              <button type="button" class="pill" data-value="chord">Chord</button>
-            </div>
-          </fieldset>
-
-          <label class="control-group" id="rootNoteGroup">
-            <span class="control-label">主音</span>
-            <select id="rootNote"></select>
-          </label>
-
-          <label class="control-group" id="modeGroup">
-            <span class="control-label">调式</span>
-            <select id="mode"></select>
-          </label>
-
-          <label class="control-group" id="positionGroup">
-            <span class="control-label">指型</span>
-            <select id="position"></select>
-          </label>
-
-          <fieldset class="toggle-group control-span-2" id="scaleChordGroup">
-            <legend class="control-label">级数和弦高亮</legend>
-            <label class="inline-switch" for="scaleChordEnabled">
-              <span class="switch-copy">在当前音阶上叠加和弦音高亮</span>
-              <input id="scaleChordEnabled" type="checkbox" />
-            </label>
-            <div class="compound-grid">
-              <label class="control-group control-group-compact">
-                <span class="control-label">级数</span>
-                <select id="scaleChordDegree"></select>
-              </label>
-              <label class="control-group control-group-compact">
-                <span class="control-label">类型</span>
-                <select id="scaleChordType">
-                  <option value="triad">三和弦</option>
-                  <option value="seventh">七和弦</option>
-                </select>
-              </label>
-            </div>
-            <p class="control-hint is-hidden" id="scaleChordHint">
-              当前仅支持七声音阶的级数和弦高亮。
-            </p>
-          </fieldset>
-
-          <label class="control-group is-hidden" id="chordTypeGroup">
-            <span class="control-label">和弦</span>
-            <select id="chordType"></select>
-          </label>
-
-          <fieldset class="toggle-group is-hidden control-span-2" id="chordShapeGroup">
-            <legend class="control-label">CAGED Shape</legend>
-            <div class="pill-row" id="chordShape">
-              <button type="button" class="pill" data-value="C">C</button>
-              <button type="button" class="pill" data-value="A">A</button>
-              <button type="button" class="pill" data-value="G">G</button>
-              <button type="button" class="pill is-active" data-value="E">E</button>
-              <button type="button" class="pill" data-value="D">D</button>
-            </div>
-            <p class="control-hint is-hidden" id="cagedHint">当前仅支持 maj/min 的 CAGED 高亮。</p>
-          </fieldset>
-
-          <label class="control-group" id="themeGroup">
-            <span class="control-label">主题</span>
-            <select id="theme"></select>
-          </label>
-
-          <fieldset class="toggle-group" id="labelModeGroup">
-            <legend class="control-label">标签显示</legend>
-            <div class="pill-row" id="labelMode">
-              <button type="button" class="pill is-active" data-value="note">音名</button>
-              <button type="button" class="pill" data-value="degree">级数</button>
-            </div>
-          </fieldset>
-
-          <label class="switch-group" for="emphasizeRoot">
-            <span class="control-label">根音强调</span>
-            <span class="switch-copy">单独高亮主音位置</span>
-            <input id="emphasizeRoot" type="checkbox" checked />
-          </label>
-        </section>
         </section>
 
         <section class="fretboard-panel">
@@ -181,7 +188,7 @@
           <article class="legend-card legend-card-featured">
             <h3>练习建议</h3>
             <p id="legendPracticeText">
-              先固定同一个主音，在七声音阶里切换 Position 1-7，或在五声音阶里切换 Box 1-5，观察根音和级数在横向与纵向上的位移关系。
+              先固定同一个主音，在七声音阶里切换 Position 1-7，或在五声音阶和布鲁斯音阶里切换 Box 1-5，观察根音和级数在横向与纵向上的位移关系。
             </p>
           </article>
           <article class="legend-card">

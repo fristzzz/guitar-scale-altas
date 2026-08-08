@@ -12,10 +12,12 @@
 - 12 个主音选择
 - 七种自然调式：`Ionian / Dorian / Phrygian / Lydian / Mixolydian / Aeolian / Locrian`
 - 五声音阶：`Major Pentatonic / Minor Pentatonic`
+- 小调布鲁斯音阶：`Blues`（`1 / b3 / 4 / b5 / 5 / b7`）
 - 补充和声/旋律大小调：`Harmonic Major / Harmonic Minor / Melodic Major / Melodic Minor`
 - `3NPS Position 1-7` 高亮
 - 五声音阶 `5 Box` 高亮
 - `Scale` 视图下支持按级数叠加和弦高亮，可选 `三和弦 / 七和弦`，当前仅支持七声音阶
+- `Scale` 视图下会列出当前调的 `1-7` 级和弦名称，并跟随 `三和弦 / 七和弦` 切换
 - 常见和弦高亮：`maj / min / 7 / maj7 / min7 / dim / aug / sus2 / sus4`
 - 和弦视图下支持 `C / A / G / E / D` 的 CAGED shape 强调
 - 标签支持显示音名或级数/和弦音程
