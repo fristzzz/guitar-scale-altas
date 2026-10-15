@@ -14,6 +14,7 @@
 - 五声音阶：`Major Pentatonic / Minor Pentatonic`
 - 小调布鲁斯音阶：`Blues`（`1 / b3 / 4 / b5 / 5 / b7`）
 - 补充和声/旋律大小调：`Harmonic Major / Harmonic Minor / Melodic Major / Melodic Minor`
+- 和声小调第五级调式：`Phrygian Dominant`（`1 / b2 / 3 / 4 / 5 / b6 / b7`）
 - `3NPS Position 1-7` 高亮
 - 五声音阶 `5 Box` 高亮
 - `Scale` 视图下支持按级数叠加和弦高亮，可选 `三和弦 / 七和弦`，当前仅支持七声音阶
