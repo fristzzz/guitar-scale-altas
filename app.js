@@ -3,16 +3,22 @@ const NOTE_INDEX = Object.fromEntries(NOTES.map((note, index) => [note, index]))
 const FRET_COUNT = 24;
 const DEFAULT_THEME = "workshop";
 const THEME_STORAGE_KEY = "guitar-scale-atlas-theme";
-const STRING_TUNING = [
-  { name: "E", pitchClass: 4, gauge: "3.6px" },
-  { name: "A", pitchClass: 9, gauge: "3.1px" },
-  { name: "D", pitchClass: 2, gauge: "2.8px" },
-  { name: "G", pitchClass: 7, gauge: "2.4px" },
-  { name: "B", pitchClass: 11, gauge: "2px" },
-  { name: "E", pitchClass: 4, gauge: "1.7px" },
-];
+const DEFAULT_STRING_PITCH_CLASSES = [4, 9, 2, 7, 11, 4];
+const STRING_GAUGES = ["3.6px", "3.1px", "2.8px", "2.4px", "2px", "1.7px"];
 const DISPLAY_STRING_ORDER = [5, 4, 3, 2, 1, 0];
-const SAME_FRET_DELTAS = [0, 5, 10, 15, 19, 24];
+const TUNING_PRESETS = [
+  { id: "standard", label: "Standard (E A D G B E)", pitchClasses: [4, 9, 2, 7, 11, 4] },
+  { id: "drop-d", label: "Drop D (D A D G B E)", pitchClasses: [2, 9, 2, 7, 11, 4] },
+  { id: "dadgad", label: "DADGAD (D A D G A D)", pitchClasses: [2, 9, 2, 7, 9, 2] },
+  { id: "open-g", label: "Open G (D G D G B D)", pitchClasses: [2, 7, 2, 7, 11, 2] },
+  { id: "open-d", label: "Open D (D A D F# A D)", pitchClasses: [2, 9, 2, 6, 9, 2] },
+  {
+    id: "half-down",
+    label: "Half-step down (D# G# C# F# A# D#)",
+    pitchClasses: [3, 8, 1, 6, 10, 3],
+  },
+  { id: "all-fourths", label: "All-fourths (E A D G C F)", pitchClasses: [4, 9, 2, 7, 0, 5] },
+];
 const DEGREE_LABELS = {
   0: "1",
   1: "b2",
@@ -28,6 +34,57 @@ const DEGREE_LABELS = {
   11: "7",
 };
 const FRET_MARKERS = new Set([3, 5, 7, 9, 12, 15, 17, 19, 21, 24]);
+
+function buildStringData(pitchClasses) {
+  return pitchClasses.map((pitchClass, index) => ({
+    name: NOTES[pitchClass],
+    pitchClass,
+    gauge: STRING_GAUGES[index] ?? STRING_GAUGES[STRING_GAUGES.length - 1],
+  }));
+}
+
+function computeStringDeltas(pitchClasses) {
+  const deltas = [0];
+
+  for (let index = 1; index < pitchClasses.length; index += 1) {
+    let step = (pitchClasses[index] - pitchClasses[index - 1] + NOTES.length) % NOTES.length;
+
+    if (step === 0) {
+      step = NOTES.length;
+    }
+
+    deltas.push(deltas[index - 1] + step);
+  }
+
+  return deltas;
+}
+
+function createDefaultTuning() {
+  return {
+    presetId: "standard",
+    pitchClasses: [...DEFAULT_STRING_PITCH_CLASSES],
+  };
+}
+
+function resolveTuningPitchClasses(currentState) {
+  return currentState?.tuning?.pitchClasses ?? DEFAULT_STRING_PITCH_CLASSES;
+}
+
+function resolveStrings(currentState) {
+  return buildStringData(resolveTuningPitchClasses(currentState));
+}
+
+function resolveStringDeltas(currentState) {
+  return computeStringDeltas(resolveTuningPitchClasses(currentState));
+}
+
+function matchTuningPreset(pitchClasses) {
+  return (
+    TUNING_PRESETS.find((preset) =>
+      preset.pitchClasses.every((pitchClass, index) => pitchClass === pitchClasses[index]),
+    )?.id ?? "custom"
+  );
+}
 
 function createScaleDefinition(
   intervals,
@@ -733,6 +790,7 @@ const state = {
   theme: DEFAULT_THEME,
   labelMode: "note",
   emphasizeRoot: true,
+  tuning: createDefaultTuning(),
 };
 
 const elements = {
@@ -754,6 +812,8 @@ const elements = {
   chordType: document.querySelector("#chordType"),
   chordShape: document.querySelector("#chordShape"),
   theme: document.querySelector("#theme"),
+  tuningPreset: document.querySelector("#tuningPreset"),
+  tuningSummary: document.querySelector("#tuningSummary"),
   labelMode: document.querySelector("#labelMode"),
   emphasizeRoot: document.querySelector("#emphasizeRoot"),
   fretboard: document.querySelector("#fretboard"),
@@ -875,6 +935,11 @@ function populateControls() {
     elements.chordType.appendChild(createOption(chordType, chordType));
   });
 
+  TUNING_PRESETS.forEach((preset) => {
+    elements.tuningPreset.appendChild(createOption(preset.id, preset.label));
+  });
+  elements.tuningPreset.appendChild(createOption("custom", "Custom"));
+
   updateViewModeButtons();
   syncScalePosition(state.mode);
   elements.rootNote.value = state.rootNote;
@@ -885,6 +950,7 @@ function populateControls() {
   elements.chordType.value = state.chordType;
   elements.theme.value = state.theme;
   elements.emphasizeRoot.checked = state.emphasizeRoot;
+  elements.tuningPreset.value = state.tuning.presetId;
 }
 
 function updateViewModeButtons() {
@@ -937,14 +1003,14 @@ function updateViewModeUI() {
   updateLabelModeButtons();
 }
 
-function buildPositionTemplate(intervals, position, notesPerString) {
+function buildPositionTemplate(intervals, position, notesPerString, stringDeltas) {
   const startDegreeIndex = position - 1;
   const noteSequence = [];
   let degreeIndex = startDegreeIndex;
   let octave = 0;
   let previousPitch = -Infinity;
 
-  for (let index = 0; index < STRING_TUNING.length * notesPerString; index += 1) {
+  for (let index = 0; index < stringDeltas.length * notesPerString; index += 1) {
     let pitch = intervals[degreeIndex] + octave * 12;
 
     if (pitch <= previousPitch) {
@@ -962,7 +1028,7 @@ function buildPositionTemplate(intervals, position, notesPerString) {
     degreeIndex = (degreeIndex + 1) % intervals.length;
   }
 
-  const strings = STRING_TUNING.map((_, stringIndex) => {
+  const strings = stringDeltas.map((stringDelta, stringIndex) => {
     const slice = noteSequence.slice(
       stringIndex * notesPerString,
       stringIndex * notesPerString + notesPerString,
@@ -970,7 +1036,7 @@ function buildPositionTemplate(intervals, position, notesPerString) {
     return slice.map((note) => ({
       degree: note.degree,
       interval: note.interval,
-      fretOffset: note.pitch - SAME_FRET_DELTAS[stringIndex],
+      fretOffset: note.pitch - stringDelta,
     }));
   });
 
@@ -985,19 +1051,19 @@ function buildPositionTemplate(intervals, position, notesPerString) {
   };
 }
 
-function getLowERootFret(rootNote) {
-  return (NOTE_INDEX[rootNote] - STRING_TUNING[0].pitchClass + 12) % 12;
+function getLowERootFret(rootNote, lowStringPitchClass) {
+  return (NOTE_INDEX[rootNote] - lowStringPitchClass + 12) % 12;
 }
 
-function getStringRootFret(rootNote, stringIndex) {
-  return (NOTE_INDEX[rootNote] - STRING_TUNING[stringIndex].pitchClass + NOTES.length) % NOTES.length;
+function getStringRootFret(rootNote, stringIndex, strings) {
+  return (NOTE_INDEX[rootNote] - strings[stringIndex].pitchClass + NOTES.length) % NOTES.length;
 }
 
-function scoreWindowFit(windowStart, windowEnd, template, rootIndex, notesPerString) {
+function scoreWindowFit(windowStart, windowEnd, template, rootIndex, notesPerString, strings) {
   const counts = [];
   let totalMatches = 0;
 
-  STRING_TUNING.forEach((stringData, stringIndex) => {
+  strings.forEach((stringData, stringIndex) => {
     const allowedIntervals = new Set(
       template.strings[stringIndex].map((entry) => entry.interval),
     );
@@ -1027,7 +1093,7 @@ function scoreWindowFit(windowStart, windowEnd, template, rootIndex, notesPerStr
   };
 }
 
-function resolveVisibleWindow(template, rootFret, rootIndex, notesPerString) {
+function resolveVisibleWindow(template, rootFret, rootIndex, notesPerString, strings) {
   const width = template.window.max - template.window.min;
   const idealStart = rootFret + template.window.min;
   const candidateStarts = new Set();
@@ -1046,7 +1112,7 @@ function resolveVisibleWindow(template, rootFret, rootIndex, notesPerString) {
 
   candidateStarts.forEach((windowStart) => {
     const windowEnd = windowStart + width;
-    const fit = scoreWindowFit(windowStart, windowEnd, template, rootIndex, notesPerString);
+    const fit = scoreWindowFit(windowStart, windowEnd, template, rootIndex, notesPerString, strings);
 
     if (!bestWindow || fit.score > bestWindow.score) {
       bestWindow = {
@@ -1071,21 +1137,25 @@ function getHighlightedNotes(currentState) {
   } = scale;
   const modeIntervals = new Set(intervals);
   const rootIndex = NOTE_INDEX[currentState.rootNote];
-  const rootFret = getLowERootFret(currentState.rootNote);
+  const strings = resolveStrings(currentState);
+  const stringDeltas = resolveStringDeltas(currentState);
+  const rootFret = getLowERootFret(currentState.rootNote, strings[0].pitchClass);
   const template = buildPositionTemplate(
     positionIntervals,
     currentState.position,
     notesPerString,
+    stringDeltas,
   );
   const { windowStart, windowEnd } = resolveVisibleWindow(
     template,
     rootFret,
     rootIndex,
     notesPerString,
+    strings,
   );
   const notes = [];
 
-  STRING_TUNING.forEach((stringData, stringIndex) => {
+  strings.forEach((stringData, stringIndex) => {
     const allowedIntervals = new Set(
       template.strings[stringIndex].map((entry) => entry.interval),
     );
@@ -1229,8 +1299,9 @@ function getScaleDegreeChordContext(currentState) {
   const chordRootInterval = intervals[degreeIndex];
   const rootIndex = NOTE_INDEX[currentState.rootNote];
   const noteKeys = new Set();
+  const strings = resolveStrings(currentState);
 
-  STRING_TUNING.forEach((stringData, stringIndex) => {
+  strings.forEach((stringData, stringIndex) => {
     for (let fret = 0; fret <= FRET_COUNT; fret += 1) {
       const pitchClass = (stringData.pitchClass + fret) % NOTES.length;
       const interval = (pitchClass - rootIndex + NOTES.length) % NOTES.length;
@@ -1264,8 +1335,9 @@ function getHighlightedChordNotes(currentState) {
     shapeContext ? shapeContext.notes.map((note) => `${note.stringIndex}-${note.fret}`) : [],
   );
   const notes = [];
+  const strings = resolveStrings(currentState);
 
-  STRING_TUNING.forEach((stringData, stringIndex) => {
+  strings.forEach((stringData, stringIndex) => {
     for (let fret = 0; fret <= FRET_COUNT; fret += 1) {
       const pitchClass = (stringData.pitchClass + fret) % NOTES.length;
       const interval = (pitchClass - rootIndex + NOTES.length) % NOTES.length;
@@ -1295,6 +1367,7 @@ function getHighlightedChordNotes(currentState) {
 
 function getHighlightedChordShape(currentState) {
   const shape = CAGED_SHAPES[currentState.chordType]?.[currentState.chordShape];
+  const strings = resolveStrings(currentState);
 
   if (!shape) {
     return {
@@ -1304,7 +1377,7 @@ function getHighlightedChordShape(currentState) {
     };
   }
 
-  let anchorFret = getStringRootFret(currentState.rootNote, shape.anchorString);
+  let anchorFret = getStringRootFret(currentState.rootNote, shape.anchorString, strings);
 
   while (anchorFret + shape.windowStartOffset < 0) {
     anchorFret += 12;
@@ -1321,7 +1394,7 @@ function getHighlightedChordShape(currentState) {
 
   Object.entries(shape.strings).forEach(([stringIndexRaw, allowedIntervals]) => {
     const stringIndex = Number(stringIndexRaw);
-    const stringData = STRING_TUNING[stringIndex];
+    const stringData = strings[stringIndex];
     const allowedIntervalSet = new Set(allowedIntervals);
 
     for (let fret = windowStart; fret <= windowEnd; fret += 1) {
@@ -1426,7 +1499,7 @@ function getRenderContext(currentState) {
   };
 }
 
-function renderFretboard(currentState) {
+function renderFretboard(currentState, { focusStringIndex } = {}) {
   const {
     notes,
     windowStart,
@@ -1446,12 +1519,14 @@ function renderFretboard(currentState) {
   const highlightedMap = new Map(
     notes.map((note) => [`${note.stringIndex}-${note.fret}`, note]),
   );
+  const strings = resolveStrings(currentState);
 
   elements.fretboard.innerHTML = "";
 
   const corner = document.createElement("div");
   corner.className = "fret-header";
   corner.textContent = "String";
+  corner.title = "点击左侧音名可调整每根弦的调弦";
   elements.fretboard.appendChild(corner);
 
   for (let fret = 0; fret <= FRET_COUNT; fret += 1) {
@@ -1462,10 +1537,18 @@ function renderFretboard(currentState) {
   }
 
   DISPLAY_STRING_ORDER.forEach((stringIndex) => {
-    const stringData = STRING_TUNING[stringIndex];
+    const stringData = strings[stringIndex];
     const labelCell = document.createElement("div");
     labelCell.className = "string-label";
-    labelCell.textContent = stringData.name;
+    const tuningSelect = document.createElement("select");
+    tuningSelect.className = "string-label-select";
+    tuningSelect.dataset.stringIndex = String(stringIndex);
+    tuningSelect.setAttribute("aria-label", `第 ${stringIndex + 1} 弦音高`);
+    NOTES.forEach((note) => {
+      tuningSelect.appendChild(createOption(note, note));
+    });
+    tuningSelect.value = stringData.name;
+    labelCell.appendChild(tuningSelect);
     elements.fretboard.appendChild(labelCell);
 
     for (let fret = 0; fret <= FRET_COUNT; fret += 1) {
@@ -1554,6 +1637,23 @@ function renderFretboard(currentState) {
   elements.legendPracticeText.textContent = legendPracticeText;
   elements.legendLabelText.textContent = legendLabelText;
   elements.legendWindowText.textContent = legendWindowText;
+  updateTuningSummary();
+
+  if (focusStringIndex !== undefined) {
+    const select = elements.fretboard.querySelector(
+      `.string-label-select[data-string-index="${focusStringIndex}"]`,
+    );
+
+    if (select) {
+      select.focus();
+    }
+  }
+}
+
+function updateTuningSummary() {
+  const strings = resolveStrings(state);
+  elements.tuningSummary.textContent = strings.map((stringData) => stringData.name).join(" ");
+  elements.tuningPreset.value = state.tuning.presetId;
 }
 
 function attachEvents() {
@@ -1643,9 +1743,38 @@ function attachEvents() {
     state.emphasizeRoot = event.target.checked;
     renderFretboard(state);
   });
+
+  elements.tuningPreset.addEventListener("change", (event) => {
+    const preset = TUNING_PRESETS.find((entry) => entry.id === event.target.value);
+
+    if (!preset) {
+      return;
+    }
+
+    state.tuning = {
+      presetId: preset.id,
+      pitchClasses: [...preset.pitchClasses],
+    };
+    renderFretboard(state);
+  });
+
+  elements.fretboard.addEventListener("change", (event) => {
+    const select = event.target.closest(".string-label-select");
+
+    if (!select) {
+      return;
+    }
+
+    const stringIndex = Number(select.dataset.stringIndex);
+    state.tuning.pitchClasses[stringIndex] = NOTE_INDEX[select.value];
+    state.tuning.presetId = matchTuningPreset(state.tuning.pitchClasses);
+    renderFretboard(state, { focusStringIndex: stringIndex });
+  });
 }
 
 function runSelfCheck() {
+  const defaultStrings = buildStringData(DEFAULT_STRING_PITCH_CLASSES);
+
   NOTES.forEach((rootNote) => {
     Object.entries(SCALES).forEach(([modeName, scale]) => {
       for (let position = 1; position <= scale.positionCount; position += 1) {
@@ -1657,10 +1786,10 @@ function runSelfCheck() {
           emphasizeRoot: true,
         });
 
-        const perStringCounts = STRING_TUNING.map((_, stringIndex) =>
+        const perStringCounts = defaultStrings.map((_, stringIndex) =>
           result.notes.filter((note) => note.stringIndex === stringIndex && note.inPosition).length,
         );
-        const fullScaleCounts = STRING_TUNING.map((_, stringIndex) =>
+        const fullScaleCounts = defaultStrings.map((_, stringIndex) =>
           result.notes.filter((note) => note.stringIndex === stringIndex).length,
         );
 
@@ -1690,6 +1819,41 @@ function runSelfCheck() {
     });
   });
 
+  TUNING_PRESETS.forEach((preset) => {
+    const strings = buildStringData(preset.pitchClasses);
+
+    NOTES.forEach((rootNote) => {
+      Object.entries(SCALES).forEach(([modeName, scale]) => {
+        for (let position = 1; position <= scale.positionCount; position += 1) {
+          const result = getHighlightedNotes({
+            rootNote,
+            mode: modeName,
+            position,
+            labelMode: "note",
+            emphasizeRoot: true,
+            tuning: { presetId: preset.id, pitchClasses: [...preset.pitchClasses] },
+          });
+          const perStringCounts = strings.map((_, stringIndex) =>
+            result.notes.filter(
+              (note) => note.stringIndex === stringIndex && note.inPosition,
+            ).length,
+          );
+
+          console.assert(
+            result.windowStart >= 0 && result.windowEnd <= FRET_COUNT,
+            `Visible window should stay inside board for ${preset.id} tuning, ${rootNote} ${modeName} position ${position}.`,
+          );
+          console.assert(
+            perStringCounts.every(
+              (count) => count >= scale.windowCountMin && count <= scale.windowCountMax,
+            ),
+            `Each string should keep ${scale.windowCountMin}-${scale.windowCountMax} notes in ${preset.id} tuning, ${rootNote} ${modeName} position ${position}.`,
+          );
+        }
+      });
+    });
+  });
+
   NOTES.forEach((rootNote) => {
     Object.keys(CHORDS).forEach((chordType) => {
       const result = getHighlightedChordNotes({
@@ -1699,7 +1863,7 @@ function runSelfCheck() {
       const allowedIntervals = new Set(CHORDS[chordType]);
 
       console.assert(
-        result.notes.length >= STRING_TUNING.length * CHORDS[chordType].length,
+        result.notes.length >= defaultStrings.length * CHORDS[chordType].length,
         `Chord rendering should produce repeated notes across the board for ${rootNote} ${chordType}.`,
       );
       console.assert(
@@ -1754,7 +1918,7 @@ function runSelfCheck() {
           console.assert(
             [...result.noteKeys].some((key) => {
               const [stringIndex, fret] = key.split("-").map(Number);
-              const pitchClass = (STRING_TUNING[stringIndex].pitchClass + fret) % NOTES.length;
+              const pitchClass = (defaultStrings[stringIndex].pitchClass + fret) % NOTES.length;
               const interval = (pitchClass - NOTE_INDEX[rootNote] + NOTES.length) % NOTES.length;
               return interval === result.chordRootInterval;
             }),

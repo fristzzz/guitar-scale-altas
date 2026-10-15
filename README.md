@@ -15,6 +15,7 @@
 - 小调布鲁斯音阶：`Blues`（`1 / b3 / 4 / b5 / 5 / b7`）
 - 补充和声/旋律大小调：`Harmonic Major / Harmonic Minor / Melodic Major / Melodic Minor`
 - 和声小调第五级调式：`Phrygian Dominant`（`1 / b2 / 3 / 4 / 5 / b6 / b7`）
+- 自定义六弦调弦：指板左侧 `String` 列可直接改每根弦音高，并提供 `Standard / Drop D / DADGAD / Open G / Open D / Half-step down / All-fourths` 预设
 - `3NPS Position 1-7` 高亮
 - 五声音阶 `5 Box` 高亮
 - `Scale` 视图下支持按级数叠加和弦高亮，可选 `三和弦 / 七和弦`，当前仅支持七声音阶
@@ -55,7 +56,8 @@ python3 -m http.server 4173
 
 ## 说明
 
-- 当前版本只支持标准六弦吉他
+- 当前版本支持自定义六弦调弦（预设 + 逐弦编辑），音高按单调上升处理，暂不支持 7/8 弦或非单调排列
+- 调弦不持久化，刷新后回到标准调弦
 - 音名统一使用升号体系，不处理 `Bb / Eb` 这类等音拼写切换
 - 旋律大小调在页面中按固定 7 音集合显示，不区分传统上下行写法
 - 五声音阶使用独立的 `Box 1-5` 练习窗口，不复用七声音阶的 `Position 1-7`

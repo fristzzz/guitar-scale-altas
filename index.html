@@ -67,6 +67,11 @@
               <select id="position"></select>
             </label>
 
+            <label class="control-group" id="tuningGroup">
+              <span class="control-label">调弦</span>
+              <select id="tuningPreset"></select>
+            </label>
+
             <fieldset class="toggle-group control-span-2" id="scaleChordGroup">
               <legend class="control-label">级数和弦高亮</legend>
               <label class="inline-switch" for="scaleChordEnabled">
@@ -129,7 +134,7 @@
           </section>
           </section>
 
-          <aside class="context-rail" aria-label="当前练习与练习上下文">
+          <aside class="context-rail" aria-label="当前练习与练习上下文" aria-live="polite">
             <div class="hero-card">
               <p class="card-label">当前练习</p>
               <p class="card-value" id="selectionSummary">C Ionian · Position 1</p>
@@ -151,7 +156,7 @@
                 </div>
                 <div class="status-chip">
                   <span class="chip-label">调弦</span>
-                  <span class="chip-value">E A D G B E</span>
+                  <span class="chip-value" id="tuningSummary">E A D G B E</span>
                 </div>
                 <div class="status-chip">
                   <span class="chip-label">系统</span>
@@ -180,7 +185,7 @@
           <p class="fretboard-scale-notes" id="scaleNotesSummary">C, D, E, F, G, A, B</p>
 
           <div class="fretboard-wrap">
-            <div class="fretboard" id="fretboard" aria-live="polite"></div>
+            <div class="fretboard" id="fretboard"></div>
           </div>
         </section>
 
